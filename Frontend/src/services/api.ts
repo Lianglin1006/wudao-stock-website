@@ -64,7 +64,7 @@ export const getStockInfo = async (symbol: string) => {
 // 获取涨停股票列表
 export const getLimitUpStocks = async (date?: string) => {
   try {
-    const response = await apiClient.get('/akshare/stock/limit_up', {
+    const response = await apiClient.get('/akshare/stock/limit-up', {
       params: date ? { date } : {},
     });
     return response.data;
@@ -77,7 +77,7 @@ export const getLimitUpStocks = async (date?: string) => {
 // 获取跌停股票列表
 export const getLimitDownStocks = async (date?: string) => {
   try {
-    const response = await apiClient.get('/akshare/stock/limit_down', {
+    const response = await apiClient.get('/akshare/stock/limit-down', {
       params: date ? { date } : {},
     });
     return response.data;
