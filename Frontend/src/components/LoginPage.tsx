@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import imgLogo from 'figma:asset/7f4b65dfc7ecdec7423b09f3f147f9972055131b.png';
+import imgLogo from '../assets/logo.svg';
 import { Eye, EyeOff } from 'lucide-react';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator, BreadcrumbPage } from './ui/breadcrumb';
 

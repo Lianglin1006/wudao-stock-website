@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import svgPaths from '../imports/svg-3h6x01iqd1';
-import imgLogo from 'figma:asset/7f4b65dfc7ecdec7423b09f3f147f9972055131b.png';
+import imgLogo from '../assets/logo.svg';
 import { mockStocks, mockSentimentData, sectorReasons, sectorDuration, Stock } from '../utils/mockData';
 import { useStockData } from '../hooks/useStockData';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Star } from 'lucide-react';

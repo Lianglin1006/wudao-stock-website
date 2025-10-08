@@ -1,5 +1,5 @@
 import svgPaths from "./svg-3h6x01iqd1";
-import imgLogo from "figma:asset/7f4b65dfc7ecdec7423b09f3f147f9972055131b.png";
+import imgLogo from "../assets/logo.svg";
 
 function Title() {
   return (
