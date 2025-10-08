@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // API 基础配置 - 通过后端调用
-const API_BASE_URL = 'http://localhost:3001/api/v1';
+const API_BASE_URL = 'https://wudao-stock-website.onrender.com/api/v1';
 
 // 创建 axios 实例
 const apiClient = axios.create({
