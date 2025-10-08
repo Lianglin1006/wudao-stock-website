@@ -2,6 +2,7 @@
       "name": "股票复盘网站设计",
       "version": "0.1.0",
       "private": true,
+      "homepage": ".",
       "dependencies": {
             "@dnd-kit/core": "*",
             "@dnd-kit/sortable": "*",
