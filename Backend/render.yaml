@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: wudao-backend
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: AKSHARE_API_URL
+        value: https://akshare-api.onrender.com
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: LOG_LEVEL
+        value: info
+      - key: REQUEST_TIMEOUT
+        value: 30000
+      - key: MAX_REQUESTS_PER_MINUTE
+        value: 100
