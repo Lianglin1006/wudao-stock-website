@@ -5,7 +5,7 @@ import { defineConfig } from 'vite';
 
   export default defineConfig({
     plugins: [react()],
-    base: './',
+    base: '/',
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
