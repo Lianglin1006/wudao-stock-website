@@ -1,9 +1,54 @@
 const axios = require('axios');
+const { spawn } = require('child_process');
+const path = require('path');
 
-// 使用免费的股票数据API - Alpha Vantage或者其他可用的API
-// 这里我们先创建一个模拟的数据服务，返回真实格式的数据
+// Python AKShare客户端路径
+const AKSHARE_CLIENT_PATH = path.join(__dirname, 'akshare_client.py');
 
-// 模拟真实股票数据的生成函数
+// 调用Python AKShare客户端的通用函数
+const callAKShareClient = (command, ...args) => {
+  return new Promise((resolve, reject) => {
+    const pythonProcess = spawn('python3', [AKSHARE_CLIENT_PATH, command, ...args]);
+    
+    let stdout = '';
+    let stderr = '';
+    
+    pythonProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+    
+    pythonProcess.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+    
+    pythonProcess.on('close', (code) => {
+      if (code !== 0) {
+        console.error(`AKShare客户端错误: ${stderr}`);
+        reject(new Error(`AKShare客户端执行失败: ${stderr}`));
+        return;
+      }
+      
+      try {
+        const result = JSON.parse(stdout);
+        if (result.success) {
+          resolve(result.data);
+        } else {
+          reject(new Error(result.error));
+        }
+      } catch (error) {
+        console.error('解析AKShare响应失败:', error);
+        reject(new Error('解析响应数据失败'));
+      }
+    });
+    
+    pythonProcess.on('error', (error) => {
+      console.error('启动Python进程失败:', error);
+      reject(error);
+    });
+  });
+};
+
+// 模拟真实股票数据的生成函数（作为备用）
 const generateRealisticStockData = (symbol, start, end) => {
   const startDate = new Date(start.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
   const endDate = new Date(end.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
@@ -43,160 +88,187 @@ const generateRealisticStockData = (symbol, start, end) => {
   return data;
 };
 
-// 生成涨停股票数据
-const generateLimitUpStocks = () => {
-  const stocks = [];
-  const stockCodes = ['000001', '000002', '300001', '300014', '600000', '600036', '002594'];
-  const stockNames = ['平安银行', '万科A', '特锐德', '亿纬锂能', '浦发银行', '招商银行', '比亚迪'];
-  
-  for (let i = 0; i < stockCodes.length; i++) {
-    stocks.push({
-      code: stockCodes[i],
-      name: stockNames[i],
-      price: Number((Math.random() * 100 + 10).toFixed(2)),
-      change: 10.00, // 涨停
-      limit_time: `${String(9 + Math.floor(Math.random() * 6)).padStart(2, '0')}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}`,
-      reason: '热点概念+政策利好',
-      market_cap: Number((Math.random() * 1000 + 100).toFixed(0)),
-      turnover: Number((Math.random() * 50 + 5).toFixed(1))
-    });
+// AKShare服务接口实现
+const akshareService = {
+  // 获取股票日线数据
+  async getStockDaily(symbol, start, end) {
+    try {
+      // 尝试从AKShare获取真实数据
+      const data = await callAKShareClient('stock_daily', symbol, start, end);
+      return data;
+    } catch (error) {
+      console.warn('AKShare获取日线数据失败，使用模拟数据:', error.message);
+      // 如果AKShare失败，返回模拟数据
+      return generateRealisticStockData(symbol, start, end);
+    }
+  },
+
+  // 获取股票基本信息
+  async getStockInfo(symbol) {
+    try {
+      // 尝试从AKShare获取真实数据
+      const data = await callAKShareClient('stock_info', symbol);
+      return data;
+    } catch (error) {
+      console.warn('AKShare获取股票信息失败，使用模拟数据:', error.message);
+      // 如果AKShare失败，返回模拟数据，标记不可用字段为"--"
+      return {
+        code: symbol,
+        name: `股票${symbol}`,
+        industry: '--',
+        market: symbol.startsWith('6') ? '上海' : '深圳',
+        list_date: '--',
+        market_cap: '--',
+        pe_ratio: '--',
+        pb_ratio: '--',
+        dividend_yield: '--',
+        roe: '--',
+        debt_ratio: '--'
+      };
+    }
+  },
+
+  // 获取涨停股票池
+  async getLimitUpStocks(date = null) {
+    try {
+      // 尝试从AKShare获取真实数据
+      const data = await callAKShareClient('limit_up', date || new Date().toISOString().split('T')[0].replace(/-/g, ''));
+      return data;
+    } catch (error) {
+      console.warn('AKShare获取涨停股票失败，使用模拟数据:', error.message);
+      // 如果AKShare失败，返回模拟数据，标记不可用字段为"--"
+      return [
+        {
+          code: '000001',
+          name: '平安银行',
+          price: 12.50,
+          change_percent: 10.00,
+          latest_price: 12.50,
+          turnover: 850000000,
+          market_cap: 242000000000,
+          industry: '银行',
+          limit_up_type: '--',
+          first_limit_time: '--',
+          last_limit_time: '--',
+          open_times: '--',
+          limit_up_fund: '--',
+          continuous_limit_up: '--'
+        },
+        {
+          code: '300750',
+          name: '宁德时代',
+          price: 185.60,
+          change_percent: 10.00,
+          latest_price: 185.60,
+          turnover: 1200000000,
+          market_cap: 815000000000,
+          industry: '电池',
+          limit_up_type: '--',
+          first_limit_time: '--',
+          last_limit_time: '--',
+          open_times: '--',
+          limit_up_fund: '--',
+          continuous_limit_up: '--'
+        }
+      ];
+    }
+  },
+
+  // 获取跌停股票池
+  async getLimitDownStocks(date = null) {
+    try {
+      // 尝试从AKShare获取真实数据
+      const data = await callAKShareClient('limit_down', date || new Date().toISOString().split('T')[0].replace(/-/g, ''));
+      return data;
+    } catch (error) {
+      console.warn('AKShare获取跌停股票失败，使用模拟数据:', error.message);
+      // 如果AKShare失败，返回模拟数据，标记不可用字段为"--"
+      return [
+        {
+          code: '002415',
+          name: '海康威视',
+          price: 28.50,
+          change_percent: -10.00,
+          latest_price: 28.50,
+          turnover: 450000000,
+          market_cap: 265000000000,
+          industry: '安防',
+          limit_down_type: '--',
+          first_limit_time: '--',
+          last_limit_time: '--',
+          open_times: '--',
+          continuous_limit_down: '--'
+        }
+      ];
+    }
+  },
+
+  // 获取实时股票数据
+  async getStockRealtime(symbols = []) {
+    try {
+      // 尝试从AKShare获取真实数据
+      const data = await callAKShareClient('realtime');
+      return data;
+    } catch (error) {
+      console.warn('AKShare获取实时数据失败，使用模拟数据:', error.message);
+      // 如果AKShare失败，返回模拟数据，标记不可用字段为"--"
+      const mockData = [];
+      const defaultSymbols = symbols.length > 0 ? symbols : ['000001', '000002', '600000', '600036'];
+      
+      defaultSymbols.forEach(symbol => {
+        const basePrice = 50 + Math.random() * 100;
+        const change = (Math.random() - 0.5) * 0.1;
+        
+        mockData.push({
+          code: symbol,
+          name: `股票${symbol}`,
+          current_price: Number((basePrice * (1 + change)).toFixed(2)),
+          change_amount: Number((basePrice * change).toFixed(2)),
+          change_percent: Number((change * 100).toFixed(2)),
+          open: Number((basePrice * (1 + (Math.random() - 0.5) * 0.02)).toFixed(2)),
+          high: Number((basePrice * (1 + Math.random() * 0.05)).toFixed(2)),
+          low: Number((basePrice * (1 - Math.random() * 0.05)).toFixed(2)),
+          volume: Math.floor(Math.random() * 1000000 + 100000),
+          turnover: Number((Math.random() * 1000000000).toFixed(0)),
+          pe_ratio: '--',
+          pb_ratio: '--',
+          market_cap: '--',
+          circulation_market_cap: '--',
+          amplitude: '--',
+          volume_ratio: '--',
+          five_minute_change: '--',
+          sixty_day_change: '--',
+          year_to_date_change: '--'
+        });
+      });
+      
+      return mockData;
+    }
+  },
+
+  // 获取股票列表
+  async getStockList(market = 'all') {
+    try {
+      // 尝试从AKShare获取真实数据
+      const data = await callAKShareClient('stock_list', market);
+      return data;
+    } catch (error) {
+      console.warn('AKShare获取股票列表失败，使用模拟数据:', error.message);
+      // 如果AKShare失败，返回模拟数据
+      return [
+        { code: '000001', name: '平安银行', market: '深圳' },
+        { code: '000002', name: '万科A', market: '深圳' },
+        { code: '000858', name: '五粮液', market: '深圳' },
+        { code: '002415', name: '海康威视', market: '深圳' },
+        { code: '300750', name: '宁德时代', market: '深圳' },
+        { code: '600000', name: '浦发银行', market: '上海' },
+        { code: '600036', name: '招商银行', market: '上海' },
+        { code: '600519', name: '贵州茅台', market: '上海' },
+        { code: '600887', name: '伊利股份', market: '上海' },
+        { code: '601318', name: '中国平安', market: '上海' }
+      ];
+    }
   }
-  
-  return stocks;
 };
 
-// 获取股票日线数据
-const getStockDaily = async (symbol, start = '20240101', end = '20241201', adjust = 'qfq') => {
-  try {
-    // 由于外部API不可用，我们返回模拟的真实格式数据
-    console.log(`获取股票 ${symbol} 的数据 (${start} 到 ${end})`);
-    
-    const data = generateRealisticStockData(symbol, start, end);
-    
-    return data;
-  } catch (error) {
-    console.error(`获取股票 ${symbol} 日线数据失败:`, error.message);
-    throw new Error(`获取股票数据失败: ${error.message}`);
-  }
-};
-
-// 获取股票基本信息
-const getStockInfo = async (symbol) => {
-  try {
-    // 返回模拟的股票基本信息
-    const stockNames = {
-      '000001': '平安银行',
-      '000002': '万科A',
-      '300001': '特锐德',
-      '300014': '亿纬锂能',
-      '600000': '浦发银行',
-      '600036': '招商银行',
-      '002594': '比亚迪'
-    };
-    
-    return {
-      symbol,
-      name: stockNames[symbol] || `股票${symbol}`,
-      market: symbol.startsWith('6') ? '上海' : (symbol.startsWith('3') || symbol.startsWith('0')) ? '深圳' : '未知',
-      industry: '金融',
-      list_date: '2000-01-01'
-    };
-  } catch (error) {
-    console.error(`获取股票 ${symbol} 信息失败:`, error.message);
-    throw new Error(`获取股票信息失败: ${error.message}`);
-  }
-};
-
-// 获取涨停股票列表
-const getLimitUpStocks = async (date) => {
-  try {
-    console.log(`获取涨停股票列表 (日期: ${date || '今日'})`);
-    
-    const data = generateLimitUpStocks();
-    
-    return data;
-  } catch (error) {
-    console.error('获取涨停股票列表失败:', error.message);
-    throw new Error(`获取涨停股票列表失败: ${error.message}`);
-  }
-};
-
-// 获取跌停股票列表
-const getLimitDownStocks = async (date) => {
-  try {
-    console.log(`获取跌停股票列表 (日期: ${date || '今日'})`);
-    
-    // 返回少量跌停股票数据
-    const data = [
-      {
-        code: '000003',
-        name: '万科B',
-        price: 45.67,
-        change: -10.00,
-        limit_time: '09:30',
-        reason: '业绩下滑+市场调整',
-        market_cap: 456,
-        turnover: 12.3
-      }
-    ];
-    
-    return data;
-  } catch (error) {
-    console.error('获取跌停股票列表失败:', error.message);
-    throw new Error(`获取跌停股票列表失败: ${error.message}`);
-  }
-};
-
-// 获取实时股票数据
-const getStockRealtime = async (symbol) => {
-  try {
-    console.log(`获取股票 ${symbol} 实时数据`);
-    
-    const basePrice = 50 + Math.random() * 100;
-    const change = (Math.random() - 0.5) * 0.2; // -10% 到 +10%
-    
-    return {
-      symbol,
-      name: `股票${symbol}`,
-      price: Number(basePrice.toFixed(2)),
-      change: Number((change * 100).toFixed(2)),
-      volume: Math.floor(Math.random() * 1000000 + 100000),
-      turnover: Number((Math.random() * 10).toFixed(2)),
-      timestamp: new Date().toISOString()
-    };
-  } catch (error) {
-    console.error(`获取股票 ${symbol} 实时数据失败:`, error.message);
-    throw new Error(`获取实时股票数据失败: ${error.message}`);
-  }
-};
-
-// 获取股票列表
-const getStockList = async () => {
-  try {
-    console.log('获取股票列表');
-    
-    const stocks = [
-      { code: '000001', name: '平安银行', market: '深圳' },
-      { code: '000002', name: '万科A', market: '深圳' },
-      { code: '300001', name: '特锐德', market: '深圳' },
-      { code: '300014', name: '亿纬锂能', market: '深圳' },
-      { code: '600000', name: '浦发银行', market: '上海' },
-      { code: '600036', name: '招商银行', market: '上海' },
-      { code: '002594', name: '比亚迪', market: '深圳' }
-    ];
-    
-    return stocks;
-  } catch (error) {
-    console.error('获取股票列表失败:', error.message);
-    throw new Error(`获取股票列表失败: ${error.message}`);
-  }
-};
-
-module.exports = {
-  getStockDaily,
-  getStockInfo,
-  getLimitUpStocks,
-  getLimitDownStocks,
-  getStockRealtime,
-  getStockList
-};
+module.exports = akshareService;

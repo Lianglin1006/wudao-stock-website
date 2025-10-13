@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
   import react from '@vitejs/plugin-react-swc';
   import path from 'path';
 
-  export default defineConfig({
+  export default defineConfig(({ mode }) => ({
     plugins: [react()],
     base: '/',
     resolve: {
@@ -59,4 +59,4 @@ import { defineConfig } from 'vite';
       port: 3000,
       open: true,
     },
-  });
+  }));

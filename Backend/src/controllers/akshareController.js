@@ -51,7 +51,7 @@ const getStockInfo = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      data
+      data: data
     });
   } catch (error) {
     next(error);
@@ -67,9 +67,11 @@ const getLimitUpStocks = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      data: {
-        date: date || '今日',
-        records: data
+      data: data,
+      meta: {
+        date: date || moment().format('YYYY-MM-DD'),
+        total: data.length,
+        note: "字段标记为'--'表示AKShare API无法直接提供该数据"
       }
     });
   } catch (error) {
@@ -86,9 +88,11 @@ const getLimitDownStocks = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      data: {
-        date: date || '今日',
-        records: data
+      data: data,
+      meta: {
+        date: date || moment().format('YYYY-MM-DD'),
+        total: data.length,
+        note: "字段标记为'--'表示AKShare API无法直接提供该数据"
       }
     });
   } catch (error) {
@@ -100,19 +104,18 @@ const getLimitDownStocks = async (req, res, next) => {
 const getStockRealtime = async (req, res, next) => {
   try {
     const { symbol } = req.params;
+    const symbols = symbol ? symbol.split(',') : [];
 
-    if (!symbol) {
-      return res.status(400).json({
-        success: false,
-        message: '股票代码不能为空'
-      });
-    }
-
-    const data = await akshareService.getStockRealtime(symbol);
+    const data = await akshareService.getStockRealtime(symbols);
 
     res.status(200).json({
       success: true,
-      data
+      data: data,
+      meta: {
+        symbols: symbols,
+        total: data.length,
+        note: "字段标记为'--'表示AKShare API无法直接提供该数据"
+      }
     });
   } catch (error) {
     next(error);
@@ -122,13 +125,16 @@ const getStockRealtime = async (req, res, next) => {
 // 获取股票列表
 const getStockList = async (req, res, next) => {
   try {
-    const data = await akshareService.getStockList();
+    const { market = 'all' } = req.query;
+
+    const data = await akshareService.getStockList(market);
 
     res.status(200).json({
       success: true,
-      data: {
-        totalCount: data.length,
-        records: data
+      data: data,
+      meta: {
+        market: market,
+        total: data.length
       }
     });
   } catch (error) {

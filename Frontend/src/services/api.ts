@@ -1,7 +1,18 @@
 import axios from 'axios';
 
 // API 基础配置 - 通过后端调用
-const API_BASE_URL = 'https://wudao-stock-website.onrender.com/api/v1';
+const API_BASE_URL = 
+// import.meta.env.VITE_API_BASE_URL || 
+  // (import.meta.env.MODE === 'development' 
+    // ? 
+    //'http://localhost:3001/api/v1'  // 本地开发环境
+    // : 
+    'https://wudao-stock-website.onrender.com/api/v1' // 生产环境
+  // )
+  ;  
+
+console.log('Current mode:', import.meta.env.MODE);
+console.log('API_BASE_URL:', API_BASE_URL);
 
 // 创建 axios 实例
 const apiClient = axios.create({

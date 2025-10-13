@@ -59,6 +59,7 @@
       },
       "scripts": {
             "dev": "vite",
+            "dev:prod": "NODE_ENV=production vite",
             "build": "vite build",
             "preview": "vite preview"
       }
